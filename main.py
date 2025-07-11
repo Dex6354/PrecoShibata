@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import unicodedata
+import re
 
 TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NTE5MjQ5MjgsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiMTYxIn0.yDCjqkeJv7D3wJ0T_fu3AaKlX9s5PQYXD19cESWpH-j3F_Is-Zb-bDdUvduwoI_RkOeqbYCuxN0ppQQXb1ArVg"
 ORG_ID = "161"
@@ -16,6 +17,33 @@ def remover_acentos(texto):
     if not texto:
         return ""
     return ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn').lower()
+
+def calcular_precos_papel(descricao, preco_total):
+    desc_minus = descricao.lower()
+
+    # Prioriza quantidade depois de "leve"
+    match_leve = re.search(r'leve\s*(\d+)', desc_minus)
+    if match_leve:
+        q_rolos = int(match_leve.group(1))
+    else:
+        # Caso não tenha "leve", procura por quantidade usual
+        match_rolos = re.search(r'(\d+)\s*(rolos|unidades|uni|pacotes|pacote)', desc_minus)
+        q_rolos = int(match_rolos.group(1)) if match_rolos else None
+
+    # Comprimento em metros
+    match_metros = re.search(r'(\d+(?:[\.,]\d+)?)\s*m(?:etros)?', desc_minus)
+    m_rolos = float(match_metros.group(1).replace(',', '.')) if match_metros else None
+
+    if q_rolos and m_rolos:
+        preco_por_rolo = preco_total / q_rolos
+        preco_por_metro = preco_total / (q_rolos * m_rolos)
+        return (f"~ R$ {preco_por_rolo:.2f}".replace('.', ',') + "/rolo",
+                f"~ R$ {preco_por_metro:.3f}".replace('.', ',') + "/m")
+    elif q_rolos:
+        preco_por_rolo = preco_total / q_rolos
+        return (f"~ R$ {preco_por_rolo:.2f}".replace('.', ',') + "/rolo", None)
+    else:
+        return (None, None)
 
 st.set_page_config(page_title="Preço Shibata", page_icon="https://s3.amazonaws.com/shibata.com.br/files/tema/filial-1/header-site-omni.png?1752244176816")
 
@@ -40,7 +68,6 @@ st.markdown("""
             flex-shrink: 0;
         }
 
-        /* Bordas arredondadas nas imagens */
         .product-image img {
             border-radius: 8px;
         }
@@ -143,6 +170,17 @@ if termo:
                     preco_principal = f"{preco_principal}/{unidade}" if unidade else preco_principal
                     preco_html = f"<b>{preco_principal}</b>"
 
+            preco_por_rolo_str, preco_por_metro_str = (None, None)
+            if 'papel higiênico' in descricao.lower() or 'papel higienico' in descricao.lower():
+                preco_total = float(preco_oferta) if em_oferta and preco_oferta else preco
+                preco_por_rolo_str, preco_por_metro_str = calcular_precos_papel(descricao, preco_total)
+
+            preco_info_extra = ""
+            if preco_por_rolo_str:
+                preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_rolo_str}</div>"
+            if preco_por_metro_str:
+                preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_metro_str}</div>"
+
             st.markdown(f"""
                 <div class='product-container'>
                     <div class='product-image'>
@@ -151,6 +189,7 @@ if termo:
                     <div class='product-info'>
                         <div style='margin-bottom: 4px;'><b>{descricao}</b></div>
                         <div style='font-size:0.85em;'>{preco_html}</div>
+                        {preco_info_extra}
                     </div>
                 </div>
                 <hr class='product-separator' />
