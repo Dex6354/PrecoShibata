@@ -45,6 +45,12 @@ st.markdown("""
             min-width: 150px;
         }
 
+        hr.product-separator {
+            border: none;
+            border-top: 1px solid #ccc;
+            margin: 10px 0;
+        }
+
         @media (max-width: 768px) {
             .product-container {
                 flex-direction: row;
@@ -142,6 +148,7 @@ if termo:
                         <div style='font-size:0.85em;'>{preco_html}</div>
                     </div>
                 </div>
+                <hr class='product-separator' />
             """, unsafe_allow_html=True)
 
     else:
