@@ -116,7 +116,7 @@ st.markdown("""
 
 st.markdown("""
     <h5 style="display:flex; align-items:center;">
-    <img src="https://s3.amazonaws.com/shibata.com.br/files/tema/filial-1/header-site-omni.png?1752244176816" width="100" style="margin-right:8px; background-color: white;"/>
+    <img src="https://s3.amazonaws.com/shibata.com.br/files/tema/filial-1/header-site-omni.png?1752244176816" width="100" style="margin-right:8px; background-color: white;border-radius: 4px;"/>
     Preço Shibata
 </h5>
 """, unsafe_allow_html=True)
@@ -137,7 +137,7 @@ if termo:
 
         data_ordenada = sorted(produtos_filtrados, key=obter_preco_ordenacao)
 
-        st.markdown(f"<small>🔎 {len(data_ordenada)} produto(s) encontrado(s)</p>", unsafe_allow_html=True)
+        st.markdown(f"<small>🔎 {len(data_ordenada)} produto(s) encontrado(s).</p>", unsafe_allow_html=True)
 
         if not data_ordenada:
             st.warning("Nenhum produto encontrado com esse nome.")
