@@ -21,29 +21,50 @@ def remover_acentos(texto):
 def calcular_precos_papel(descricao, preco_total):
     desc_minus = descricao.lower()
 
-    # Prioriza quantidade depois de "leve"
     match_leve = re.search(r'leve\s*(\d+)', desc_minus)
     if match_leve:
         q_rolos = int(match_leve.group(1))
     else:
-        # Caso não tenha "leve", procura por quantidade usual
         match_rolos = re.search(r'(\d+)\s*(rolos|unidades|uni|pacotes|pacote)', desc_minus)
         q_rolos = int(match_rolos.group(1)) if match_rolos else None
 
-    # Comprimento em metros
     match_metros = re.search(r'(\d+(?:[\.,]\d+)?)\s*m(?:etros)?', desc_minus)
     m_rolos = float(match_metros.group(1).replace(',', '.')) if match_metros else None
 
     if q_rolos and m_rolos:
         preco_por_rolo = preco_total / q_rolos
         preco_por_metro = preco_total / (q_rolos * m_rolos)
-        return (f"~ R$ {preco_por_rolo:.2f}".replace('.', ',') + "/rolo",
+        return (preco_por_rolo, preco_por_metro,
+                f"~ R$ {preco_por_rolo:.2f}".replace('.', ',') + "/rolo",
                 f"~ R$ {preco_por_metro:.3f}".replace('.', ',') + "/m")
     elif q_rolos:
         preco_por_rolo = preco_total / q_rolos
-        return (f"~ R$ {preco_por_rolo:.2f}".replace('.', ',') + "/rolo", None)
+        return (preco_por_rolo, None,
+                f"~ R$ {preco_por_rolo:.2f}".replace('.', ',') + "/rolo",
+                None)
     else:
-        return (None, None)
+        return (None, None, None, None)
+
+def obter_preco_ordenacao(p):
+    descricao = p.get('descricao', '').lower()
+    em_oferta = p.get('em_oferta', False)
+    oferta_info = p.get('oferta') or {}
+    preco_oferta = oferta_info.get('preco_oferta')
+    preco_original = float(p.get('preco_original') or p.get('preco') or 0)
+
+    # Se papel higiênico, ordenar pelo preço por metro se possível
+    if 'papel higiênico' in descricao or 'papel higienico' in descricao:
+        preco_total = float(preco_oferta) if em_oferta and preco_oferta else preco_original
+        preco_por_rolo, preco_por_metro, _, _ = calcular_precos_papel(descricao, preco_total)
+        if preco_por_metro is not None:
+            return preco_por_metro
+        if preco_por_rolo is not None:
+            return preco_por_rolo
+        return preco_total
+    # Para outros produtos, ordenar pelo preço de oferta ou original
+    if preco_oferta:
+        return float(preco_oferta)
+    return preco_original
 
 st.set_page_config(page_title="Preço Shibata", page_icon="https://s3.amazonaws.com/shibata.com.br/files/tema/filial-1/header-site-omni.png?1752244176816")
 
@@ -54,7 +75,7 @@ st.markdown("""
         #MainMenu {visibility: hidden;}
         div, span, strong, small { font-size: 0.75rem !important; }
         img { max-width: 100px; height: auto; }
-        
+
         .product-container {
             display: flex;
             align-items: center;
@@ -114,12 +135,7 @@ if termo:
 
         produtos_filtrados = [p for p in data if all(palavra in remover_acentos(p.get('descricao', '')) for palavra in palavras_termo)]
 
-        def obter_preco(p):
-            oferta_info = p.get('oferta') or {}
-            preco_oferta = oferta_info.get('preco_oferta')
-            return float(preco_oferta) if preco_oferta else float(p.get('preco_original') or p.get('preco') or 0)
-
-        data_ordenada = sorted(produtos_filtrados, key=obter_preco)
+        data_ordenada = sorted(produtos_filtrados, key=obter_preco_ordenacao)
 
         st.markdown(f"<p style='font-size:14px;'>🔎 {len(data_ordenada)} produto(s) encontrado(s)</p>", unsafe_allow_html=True)
 
@@ -173,7 +189,7 @@ if termo:
             preco_por_rolo_str, preco_por_metro_str = (None, None)
             if 'papel higiênico' in descricao.lower() or 'papel higienico' in descricao.lower():
                 preco_total = float(preco_oferta) if em_oferta and preco_oferta else preco
-                preco_por_rolo_str, preco_por_metro_str = calcular_precos_papel(descricao, preco_total)
+                _, _, preco_por_rolo_str, preco_por_metro_str = calcular_precos_papel(descricao, preco_total)
 
             preco_info_extra = ""
             if preco_por_rolo_str:
@@ -189,7 +205,7 @@ if termo:
                     <div class='product-info'>
                         <div style='margin-bottom: 4px;'><b>{descricao}</b></div>
                         <div style='font-size:0.85em;'>{preco_html}</div>
-                        {preco_info_extra}
+                        <div style='font-size:0.85em;'>{preco_info_extra}</div>
                     </div>
                 </div>
                 <hr class='product-separator' />
