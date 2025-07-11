@@ -34,8 +34,15 @@ st.set_page_config(page_title="Preço Shibata", page_icon="https://s3.amazonaws.
 # Remove o espaço superior padrão do Streamlit
 st.markdown("""
     <style>
-        main > div {
-            padding-top: 0rem !important;
+        .block-container { padding-top: 0rem; }
+        footer {visibility: hidden;}
+        #MainMenu {visibility: hidden;}
+        div, span, strong, small {
+            font-size: 0.75rem !important;
+        }
+        img {
+            max-width: 100px;
+            height: auto;
         }
     </style>
 """, unsafe_allow_html=True)
