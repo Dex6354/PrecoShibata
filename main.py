@@ -137,7 +137,7 @@ if termo:
 
         data_ordenada = sorted(produtos_filtrados, key=obter_preco_ordenacao)
 
-        st.markdown(f"<p style='font-size:14px;'>🔎 {len(data_ordenada)} produto(s) encontrado(s)</p>", unsafe_allow_html=True)
+        st.markdown(f"<small>🔎 {len(data_ordenada)} produto(s) encontrado(s)</p>", unsafe_allow_html=True)
 
         if not data_ordenada:
             st.warning("Nenhum produto encontrado com esse nome.")
