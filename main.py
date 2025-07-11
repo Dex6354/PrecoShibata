@@ -3,10 +3,10 @@ import requests
 import unicodedata
 
 # ----------------------------------------
-# CONFIGURAção
+# CONFIGURAÇÃO
 # ----------------------------------------
 
-TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NTE5MjQ5MjgsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiMTYxIn0.yDCjqkeJv7D3wJ0T_fu3AaKlX9s5PQYXD19cESWpH-j3F_Is-Zb-bDdUvduwoI_RkOeqbYCuxN0ppQQXb1ArVg"
+TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NTE5MjQ0ODEsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiMTYxIn0.Ww_qU-I-0s-fBq-jR2p2bL2zGgW-g-0w-0w-0w-0w-0w-0w-0w-0w" # Seu token real
 ORG_ID = "161"
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
@@ -17,7 +17,7 @@ HEADERS = {
 }
 
 # ----------------------------------------
-# FUNção PARA REMOVER ACENTOS
+# FUNÇÃO PARA REMOVER ACENTOS
 # ----------------------------------------
 
 def remover_acentos(texto):
@@ -31,7 +31,6 @@ def remover_acentos(texto):
 
 st.set_page_config(page_title="Preço Shibata", page_icon="https://s3.amazonaws.com/shibata.com.br/files/tema/filial-1/header-site-omni.png?1752244176816")
 
-# Remove o espaço superior padrão do Streamlit e ajusta margens
 st.markdown("""
     <style>
         .block-container { padding-top: 0rem; }
@@ -41,57 +40,58 @@ st.markdown("""
             font-size: 0.75rem !important;
         }
         img {
-            max-width: 100px; /* Mantém a largura máxima da imagem */
+            max-width: 100px;
             height: auto;
         }
         
-        /* Ajustes de espaçamento e alinhamento */
-        .st-emotion-cache-nahz7x p { /* Seletor comum para parágrafos dentro do bloco de colunas */
+        /* Ajustes gerais para parágrafos dentro dos blocos de produto */
+        .st-emotion-cache-nahz7x p { /* **AJUSTE ESTE SELETOR:** Classe do contêiner principal de colunas */
             margin-bottom: 0px;
             margin-top: 0px;
         }
         
-        /* Estilos para o contêiner das colunas - aplica flexbox */
-        .st-emotion-cache-nahz7x { /* ATENÇÃO: Verifique este seletor no navegador (F12) */
-            display: flex;
-            align-items: center; /* Alinha verticalmente os itens no centro */
-            gap: 5px; /* Um pequeno espaçamento entre a imagem e o texto */
-            padding-bottom: 5px; 
-            flex-wrap: nowrap; /* Impede que os itens quebrem para a próxima linha */
+        /* ESTILOS PARA FORÇAR LAYOUT LADO A LADO EM TODAS AS TELAS */
+        /* ATENÇÃO: SUBSTITUA OS SELETORES PELOS QUE VOCÊ ENCONTRAR NO F12 */
+
+        /* Contêiner das colunas (pai da imagem e do texto) */
+        .st-emotion-cache-nahz7x { /* **AJUSTE ESTE SELETOR:** Classe do contêiner principal das colunas */
+            display: flex; /* Transforma em um contêiner flexível */
+            flex-direction: row !important; /* FORÇA a direção em linha (lado a lado) */
+            align-items: center; /* Centraliza verticalmente a imagem e o texto */
+            flex-wrap: nowrap !important; /* FORÇA a não quebra de linha, mantendo-os lado a lado */
+            gap: 5px; /* Pequeno espaço entre a imagem e o texto */
+            padding: 5px 0 !important; /* Adiciona um pequeno padding vertical ao item completo do produto */
         }
 
-        /* Estilos para as colunas individuais - remover padding */
-        /* ATENÇÃO: Verifique estes seletores no navegador (F12). Eles podem mudar! */
-        .st-emotion-cache-1f8rbe0 { /* Seletor típico para a coluna da imagem (pode variar) */
-            padding-right: 0px !important;
+        /* Coluna da Imagem */
+        .st-emotion-cache-1f8rbe0 { /* **AJUSTE ESTE SELETOR:** Classe da div que envolve a imagem */
+            flex-shrink: 0 !important; /* Impede que a coluna da imagem encolha */
+            padding-right: 0px !important; /* Remove padding à direita da imagem */
+            min-width: 80px; /* Largura mínima para a coluna da imagem */
+            max-width: 80px; /* Largura máxima para a coluna da imagem */
         }
-        .st-emotion-cache-1wmy9hg { /* Seletor típico para a coluna de informações (pode variar) */
-            padding-left: 0px !important;
-            flex-grow: 1; /* Permite que a coluna de informações ocupe o espaço restante */
+        
+        /* Coluna das Informações (Nome e Preço) */
+        .st-emotion-cache-1wmy9hg { /* **AJUSTE ESTE SELETOR:** Classe da div que envolve o nome e preço */
+            flex-grow: 1 !important; /* Permite que a coluna de informações ocupe o espaço restante */
+            padding-left: 0px !important; /* Remove padding à esquerda do texto */
+            min-width: calc(100% - 90px); /* Garante que o texto tenha espaço suficiente, subtraindo a largura da imagem + gap */
         }
 
-        /* Forçar layout lado a lado em telas pequenas (até 768px, por exemplo) */
-        @media (max-width: 768px) {
-            .st-emotion-cache-nahz7x { /* Contêiner das colunas */
-                flex-direction: row; /* Garante que os itens fiquem em linha */
-                align-items: center; /* Alinha ao centro verticalmente */
-                flex-wrap: nowrap; /* Impede a quebra de linha */
-            }
-            .st-emotion-cache-1f8rbe0 { /* Coluna da imagem */
-                min-width: 80px; /* Define uma largura mínima para a imagem */
-                max-width: 80px; /* Define uma largura máxima para a imagem */
-                flex-shrink: 0; /* Impede que a imagem encolha */
-            }
-            .st-emotion-cache-1wmy9hg { /* Coluna de informações */
-                flex-basis: auto; /* Deixa o conteúdo determinar a largura inicial */
-                flex-grow: 1; /* Permite que a coluna de informações cresça para preencher o espaço */
-                min-width: 150px; /* Garante uma largura mínima para o texto não ficar muito espremido */
-            }
+        /* Removendo qualquer margem extra que o Streamlit possa adicionar a elementos internos */
+        .st-emotion-cache-1f8rbe0 > div,
+        .st-emotion-cache-1wmy9hg > div {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        /* Ajuste para o texto dentro da coluna de informações */
+        .st-emotion-cache-1wmy9hg > div > div {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Substitui o título com a imagem pequena no lugar do emoji
 st.markdown("""
     <h3 style="display:flex; align-items:center;">
     <img src="https://s3.amazonaws.com/shibata.com.br/files/tema/filial-1/header-site-omni.png?1752244176816" width="100" style="margin-right:8px; background-color: white;"/>
@@ -147,11 +147,12 @@ if termo:
             imagem_url = f"https://produtos.vipcommerce.com.br/250x250/{imagem}"
 
             with st.container():
-                # Manteremos as proporções para desktops, mas o CSS fará o "override" para mobile
+                # As proporções ainda são importantes para o layout inicial no Streamlit,
+                # mas o CSS com !important vai sobrescrever em telas pequenas.
                 col_img, col_info = st.columns([0.5, 3.5]) 
 
                 with col_img:
-                    st.image(imagem_url, width=80) # Largura da imagem
+                    st.image(imagem_url, width=80) 
 
                 with col_info:
                     st.markdown(f"<div style='margin-bottom: 0px;'><b>{descricao}</b></div>", unsafe_allow_html=True)
