@@ -26,7 +26,7 @@ st.markdown("""
         #MainMenu {visibility: hidden;}
         div, span, strong, small { font-size: 0.75rem !important; }
         img { max-width: 100px; height: auto; }
-
+        
         .product-container {
             display: flex;
             align-items: center;
@@ -38,6 +38,11 @@ st.markdown("""
             min-width: 80px;
             max-width: 80px;
             flex-shrink: 0;
+        }
+
+        /* Bordas arredondadas nas imagens */
+        .product-image img {
+            border-radius: 8px;
         }
 
         .product-info {
