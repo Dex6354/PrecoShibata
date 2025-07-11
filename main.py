@@ -3,7 +3,7 @@ import requests
 import unicodedata
 
 # ----------------------------------------
-# CONFIGURAÇÃO
+# CONFIGURAção
 # ----------------------------------------
 
 TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NTE5MjQ5MjgsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiMTYxIn0.yDCjqkeJv7D3wJ0T_fu3AaKlX9s5PQYXD19cESWpH-j3F_Is-Zb-bDdUvduwoI_RkOeqbYCuxN0ppQQXb1ArVg"
@@ -17,7 +17,7 @@ HEADERS = {
 }
 
 # ----------------------------------------
-# FUNÇÃO PARA REMOVER ACENTOS
+# FUNção PARA REMOVER ACENTOS
 # ----------------------------------------
 
 def remover_acentos(texto):
@@ -41,28 +41,52 @@ st.markdown("""
             font-size: 0.75rem !important;
         }
         img {
-            max-width: 100px;
+            max-width: 100px; /* Mantém a largura máxima da imagem */
             height: auto;
         }
-        /* Novo estilo para remover margens de parágrafos dentro das colunas de produto */
-        /* ATENÇÃO: Os seletores abaixo podem precisar de ajuste dependendo da versão do Streamlit */
-        .st-emotion-cache-nahz7x p { /* Seletor para parágrafos dentro do bloco de colunas */
+        
+        /* Ajustes de espaçamento e alinhamento */
+        .st-emotion-cache-nahz7x p { /* Seletor comum para parágrafos dentro do bloco de colunas */
             margin-bottom: 0px;
             margin-top: 0px;
         }
-        /* Ajuste para o layout das colunas e alinhamento do conteúdo */
-        .st-emotion-cache-nahz7x { /* Seletor para o contêiner das colunas */
+        
+        /* Estilos para o contêiner das colunas - aplica flexbox */
+        .st-emotion-cache-nahz7x { /* ATENÇÃO: Verifique este seletor no navegador (F12) */
             display: flex;
             align-items: center; /* Alinha verticalmente os itens no centro */
-            gap: 0px; /* Reduz o espaçamento entre as colunas */
-            padding-bottom: 5px; /* Adiciona um pequeno padding na parte inferior do contêiner do produto */
+            gap: 5px; /* Um pequeno espaçamento entre a imagem e o texto */
+            padding-bottom: 5px; 
+            flex-wrap: nowrap; /* Impede que os itens quebrem para a próxima linha */
         }
-        /* Garantir que as próprias colunas não tenham padding excessivo */
-        .st-emotion-cache-1f8rbe0 { /* Este seletor pode variar. Inspecione o elemento para a coluna da imagem. */
+
+        /* Estilos para as colunas individuais - remover padding */
+        /* ATENÇÃO: Verifique estes seletores no navegador (F12). Eles podem mudar! */
+        .st-emotion-cache-1f8rbe0 { /* Seletor típico para a coluna da imagem (pode variar) */
             padding-right: 0px !important;
         }
-        .st-emotion-cache-1wmy9hg { /* Este seletor pode variar. Inspecione o elemento para a coluna de info. */
+        .st-emotion-cache-1wmy9hg { /* Seletor típico para a coluna de informações (pode variar) */
             padding-left: 0px !important;
+            flex-grow: 1; /* Permite que a coluna de informações ocupe o espaço restante */
+        }
+
+        /* Forçar layout lado a lado em telas pequenas (até 768px, por exemplo) */
+        @media (max-width: 768px) {
+            .st-emotion-cache-nahz7x { /* Contêiner das colunas */
+                flex-direction: row; /* Garante que os itens fiquem em linha */
+                align-items: center; /* Alinha ao centro verticalmente */
+                flex-wrap: nowrap; /* Impede a quebra de linha */
+            }
+            .st-emotion-cache-1f8rbe0 { /* Coluna da imagem */
+                min-width: 80px; /* Define uma largura mínima para a imagem */
+                max-width: 80px; /* Define uma largura máxima para a imagem */
+                flex-shrink: 0; /* Impede que a imagem encolha */
+            }
+            .st-emotion-cache-1wmy9hg { /* Coluna de informações */
+                flex-basis: auto; /* Deixa o conteúdo determinar a largura inicial */
+                flex-grow: 1; /* Permite que a coluna de informações cresça para preencher o espaço */
+                min-width: 150px; /* Garante uma largura mínima para o texto não ficar muito espremido */
+            }
         }
     </style>
 """, unsafe_allow_html=True)
@@ -123,14 +147,13 @@ if termo:
             imagem_url = f"https://produtos.vipcommerce.com.br/250x250/{imagem}"
 
             with st.container():
-                # Reduzindo a proporção da coluna da imagem para 0.5 e aumentando a do texto para 3.5
-                col_img, col_info = st.columns([0.5, 3.5])
+                # Manteremos as proporções para desktops, mas o CSS fará o "override" para mobile
+                col_img, col_info = st.columns([0.5, 3.5]) 
 
                 with col_img:
-                    st.image(imagem_url, width=80) # Reduzi um pouco a largura da imagem aqui também
+                    st.image(imagem_url, width=80) # Largura da imagem
 
                 with col_info:
-                    # Usamos um div com estilo para controlar o espaçamento do título e alinhar ao topo
                     st.markdown(f"<div style='margin-bottom: 0px;'><b>{descricao}</b></div>", unsafe_allow_html=True)
 
                     if em_oferta and preco_oferta and preco_antigo:
