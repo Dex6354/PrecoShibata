@@ -3,7 +3,7 @@ import requests
 import unicodedata
 
 # ----------------------------------------
-# CONFIGURAçÃ£o
+# CONFIGURAÇÃO
 # ----------------------------------------
 
 TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NTE5MjQ5MjgsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiMTYxIn0.yDCjqkeJv7D3wJ0T_fu3AaKlX9s5PQYXD19cESWpH-j3F_Is-Zb-bDdUvduwoI_RkOeqbYCuxN0ppQQXb1ArVg"
@@ -17,7 +17,7 @@ HEADERS = {
 }
 
 # ----------------------------------------
-# FUNçÃ£O PARA REMOVER ACENTOS
+# FUNÇÃO PARA REMOVER ACENTOS
 # ----------------------------------------
 
 def remover_acentos(texto):
@@ -114,14 +114,7 @@ if termo:
 
             imagem_url = f"https://produtos.vipcommerce.com.br/250x250/{imagem}"
 
-            st.markdown(f"""
-                <div class='product-container'>
-                    <div class='product-image'>
-                        <img src='{imagem_url}' width='80'/>
-                    </div>
-                    <div class='product-info'>
-                        <div style='margin-bottom: 0px;'><b>{descricao}</b></div>
-            """, unsafe_allow_html=True)
+            preco_html = ""
 
             if em_oferta and preco_oferta and preco_antigo:
                 preco_oferta_val = float(preco_oferta)
@@ -131,32 +124,39 @@ if termo:
                 preco_oferta_str = f"{preco_oferta_val:.2f}".replace('.', ',')
                 preco_antigo_str = f"{preco_antigo_val:.2f}".replace('.', ',')
 
-                preco_oferta_exibe = f"R$ {preco_oferta_str}{unidade_str}"
-                preco_antigo_exibe = f"R$ {preco_antigo_str}{unidade_str}"
-
-                st.markdown(f"""
+                preco_html = f"""
                     <div style='line-height:1.3;'>
                         <p style='font-size:0.85em; margin:0;'>
-                            <b>{preco_oferta_exibe}</b>
+                            <b>R$ {preco_oferta_str}{unidade_str}</b>
                             <span style='color:red;'>-{desconto}% OFF</span>
                         </p>
                         <p style='font-size:0.85em; color:gray; text-decoration: line-through; margin:0;'>
-                            {preco_antigo_exibe}
+                            R$ {preco_antigo_str}{unidade_str}
                         </p>
                     </div>
-                """, unsafe_allow_html=True)
+                """
 
             elif exibe_preco_original:
                 preco_principal = f"R$ {preco:.2f}".replace('.', ',')
                 preco_principal = f"{preco_principal}/{unidade}" if unidade else preco_principal
-                st.markdown(f"<p style='font-size:0.85em; margin:0;'><b>{preco_principal}</b></p>", unsafe_allow_html=True)
+                preco_html = f"<p style='font-size:0.85em; margin:0;'><b>{preco_principal}</b></p>"
 
             else:
                 preco_principal = f"R$ {preco:.2f}".replace('.', ',')
                 preco_principal = f"{preco_principal}/{unidade}" if unidade else preco_principal
-                st.markdown(f"<p style='font-size:0.85em; margin:0;'><b>{preco_principal}</b></p>", unsafe_allow_html=True)
+                preco_html = f"<p style='font-size:0.85em; margin:0;'><b>{preco_principal}</b></p>"
 
-            st.markdown("</div></div>", unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class='product-container'>
+                    <div class='product-image'>
+                        <img src='{imagem_url}' width='80'/>
+                    </div>
+                    <div class='product-info'>
+                        <div style='margin-bottom: 4px;'><b>{descricao}</b></div>
+                        {preco_html}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
     else:
         st.error("Erro ao buscar produtos. Verifique o termo de busca ou a conexão.")
