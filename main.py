@@ -20,7 +20,6 @@ def remover_acentos(texto):
 
 def calcular_precos_papel(descricao, preco_total):
     desc_minus = descricao.lower()
-
     match_leve = re.search(r'leve\s*(\d+)', desc_minus)
     if match_leve:
         q_rolos = int(match_leve.group(1))
@@ -38,7 +37,6 @@ def calcular_precos_papel(descricao, preco_total):
 
 def calcular_preco_unidade(descricao, preco_total):
     desc_minus = remover_acentos(descricao)
-
     match_kg = re.search(r'(\d+(?:[\.,]\d+)?)\s*(kg|quilo)', desc_minus)
     if match_kg:
         peso = float(match_kg.group(1).replace(',', '.'))
@@ -61,7 +59,16 @@ def calcular_preco_unidade(descricao, preco_total):
 
     return None, None
 
-st.set_page_config(page_title="Preço Shibata", page_icon="https://raw.githubusercontent.com/Dex6354/PrecoShibata/refs/heads/main/logo-shibata.png")
+def formatar_preco_unidade_personalizado(preco_total, quantidade, unidade):
+    if not unidade:
+        return None
+    unidade = unidade.lower()
+    if quantidade and quantidade != 1:
+        return f"R$ {preco_total:.2f}".replace('.', ',') + f"/{str(quantidade).replace('.', ',')}{unidade.lower()}"
+    else:
+        return f"R$ {preco_total:.2f}".replace('.', ',') + f"/{unidade.lower()}"
+
+st.set_page_config(page_title="Preço Shibata", page_icon="🧻")
 
 st.markdown("""
     <style>
@@ -70,35 +77,29 @@ st.markdown("""
         #MainMenu {visibility: hidden;}
         div, span, strong, small { font-size: 0.75rem !important; }
         img { max-width: 100px; height: auto; }
-
         .product-container {
             display: flex;
             align-items: center;
             gap: 10px;
             flex-wrap: nowrap;
         }
-
         .product-image {
             min-width: 80px;
             max-width: 80px;
             flex-shrink: 0;
         }
-
         .product-image img {
             border-radius: 8px;
         }
-
         .product-info {
             flex-grow: 1;
             min-width: 150px;
         }
-
         hr.product-separator {
             border: none;
             border-top: 1px solid #ccc;
             margin: 10px 0;
         }
-
         @media (max-width: 768px) {
             .product-container {
                 flex-direction: row;
@@ -121,101 +122,104 @@ st.markdown("""
 termo = st.text_input("🛒Digite o nome do produto:", "").strip().lower()
 
 if termo:
-    url = f"https://services.vipcommerce.com.br/api-admin/v1/org/{ORG_ID}/filial/1/centro_distribuicao/1/loja/buscas/produtos/termo/{termo}?page=1"
-    response = requests.get(url, headers=HEADERS, timeout=10)
+    produtos_totais = []
+    pagina = 1
 
-    if response.status_code == 200:
+    while True:
+        url = f"https://services.vipcommerce.com.br/api-admin/v1/org/{ORG_ID}/filial/1/centro_distribuicao/1/loja/buscas/produtos/termo/{termo}?page={pagina}"
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        if response.status_code != 200:
+            break
+
         data = response.json().get('data', {}).get('produtos', [])
+        if not data:
+            break
 
-        termo_sem_acento = remover_acentos(termo)
-        palavras_termo = termo_sem_acento.split()
+        produtos_totais.extend(data)
+        pagina += 1
 
-        produtos_filtrados = [p for p in data if all(palavra in remover_acentos(p.get('descricao', '')) for palavra in palavras_termo)]
+    termo_sem_acento = remover_acentos(termo)
+    palavras_termo = termo_sem_acento.split()
+    produtos_filtrados = [p for p in produtos_totais if all(palavra in remover_acentos(p.get('descricao', '')) for palavra in palavras_termo)]
 
-        produtos_processados = []
+    produtos_processados = []
+    for p in produtos_filtrados:
+        preco = float(p.get('preco') or 0)
+        em_oferta = p.get('em_oferta', False)
+        oferta_info = p.get('oferta') or {}
+        preco_oferta = oferta_info.get('preco_oferta')
+        preco_total = float(preco_oferta) if em_oferta and preco_oferta else preco
+        descricao = p.get('descricao', '')
+        quantidade_dif = p.get('quantidade_unidade_diferente')
+        unidade_sigla = p.get('unidade_sigla')
 
-        for p in produtos_filtrados:
-            preco = float(p.get('preco_original') or p.get('preco') or 0)
-            em_oferta = p.get('em_oferta', False)
-            oferta_info = p.get('oferta') or {}
-            preco_oferta = oferta_info.get('preco_oferta')
-            preco_total = float(preco_oferta) if em_oferta and preco_oferta else preco
-            descricao = p.get('descricao', '')
+        preco_unidade_str = formatar_preco_unidade_personalizado(preco_total, quantidade_dif, unidade_sigla)
+        preco_unidade_val, _ = calcular_preco_unidade(descricao, preco_total)
+        preco_por_metro_val, _ = calcular_precos_papel(descricao, preco_total)
 
-            preco_unidade_val, preco_unidade_str = calcular_preco_unidade(descricao, preco_total)
-            p['preco_unidade_val'] = preco_unidade_val if preco_unidade_val else float('inf')
-            p['preco_unidade_str'] = preco_unidade_str or ""
+        p['preco_unidade_val'] = preco_unidade_val if preco_unidade_val else float('inf')
+        p['preco_unidade_str'] = preco_unidade_str or ""
+        p['preco_por_metro_val'] = preco_por_metro_val if preco_por_metro_val else float('inf')
+        produtos_processados.append(p)
 
-            produtos_processados.append(p)
-
+    if 'papel higienico' in remover_acentos(termo):
+        produtos_ordenados = sorted(produtos_processados, key=lambda x: x['preco_por_metro_val'])
+    else:
         produtos_ordenados = sorted(produtos_processados, key=lambda x: x['preco_unidade_val'])
 
-        st.markdown(f"<small>🔎 {len(produtos_ordenados)} produto(s) encontrado(s).</p>", unsafe_allow_html=True)
+    st.markdown(f"<small>🔎 {len(produtos_ordenados)} produto(s) encontrado(s).</p>", unsafe_allow_html=True)
 
-        if not produtos_ordenados:
-            st.warning("Nenhum produto encontrado com esse nome.")
+    if not produtos_ordenados:
+        st.warning("Nenhum produto encontrado com esse nome.")
 
-        for p in produtos_ordenados:
-            preco = float(p.get('preco_original') or p.get('preco') or 0)
-            unidade = p.get('unidade_sigla', '').lower()
-            descricao = p.get('descricao', '')
-            imagem = p.get('imagem', '')
-            exibe_preco_original = p.get('exibe_preco_original', True)
-            em_oferta = p.get('em_oferta', False)
-            oferta_info = p.get('oferta') or {}
-            preco_oferta = oferta_info.get('preco_oferta')
-            preco_antigo = oferta_info.get('preco_antigo')
+    for p in produtos_ordenados:
+        preco = float(p.get('preco') or 0)
+        descricao = p.get('descricao', '')
+        imagem = p.get('imagem', '')
+        em_oferta = p.get('em_oferta', False)
+        oferta_info = p.get('oferta') or {}
+        preco_oferta = oferta_info.get('preco_oferta')
+        preco_antigo = oferta_info.get('preco_antigo')
+        imagem_url = f"https://produtos.vipcommerce.com.br/250x250/{imagem}"
+        preco_total = float(preco_oferta) if em_oferta and preco_oferta else preco
 
-            imagem_url = f"https://produtos.vipcommerce.com.br/250x250/{imagem}"
-            preco_total = float(preco_oferta) if em_oferta and preco_oferta else preco
+        quantidade_dif = p.get('quantidade_unidade_diferente')
+        unidade_sigla = p.get('unidade_sigla')
+        preco_formatado = formatar_preco_unidade_personalizado(preco_total, quantidade_dif, unidade_sigla)
 
-            preco_html = ""
-            unidade_str = f"/{unidade}" if unidade else ""
+        if em_oferta and preco_oferta and preco_antigo:
+            preco_oferta_val = float(preco_oferta)
+            preco_antigo_val = float(preco_antigo)
+            desconto = round(100 * (preco_antigo_val - preco_oferta_val) / preco_antigo_val) if preco_antigo_val else 0
+            preco_antigo_str = f"R$ {preco_antigo_val:.2f}".replace('.', ',')
+            preco_html = f"""
+                <div><b style='color:green;'>{preco_formatado}</b> <span style='color:red;'>({desconto}% OFF)</span></div>
+                <div><span style='color:gray; text-decoration: line-through;'>Preço original: {preco_antigo_str}</span></div>
+            """
+        else:
+            preco_html = f"<div><b>{preco_formatado}</b></div>"
 
-            # Preço principal (com ou sem desconto)
-            if em_oferta and preco_oferta and preco_antigo:
-                preco_oferta_val = float(preco_oferta)
-                preco_antigo_val = float(preco_antigo)
-                desconto = round(100 * (preco_antigo_val - preco_oferta_val) / preco_antigo_val) if preco_antigo_val else 0
+        _, preco_por_metro_str = calcular_precos_papel(descricao, preco_total)
+        _, preco_por_unidade_str = calcular_preco_unidade(descricao, preco_total)
 
-                preco_oferta_str = f"R$ {preco_oferta_val:.2f}".replace('.', ',')
-                preco_antigo_str = f"R$ {preco_antigo_val:.2f}".replace('.', ',')
+        preco_info_extra = ""
+        if preco_por_metro_str:
+            preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_metro_str}</div>"
+        if preco_por_unidade_str:
+            preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_unidade_str}</div>"
 
-                preco_html = f"""
-                    <div><b style='color:green;'>{preco_oferta_str}{unidade_str}</b> <span style='color:red;'>({desconto}% OFF)</span></div>
-                    <div><span style='color:gray; text-decoration: line-through;'>Preço original: {preco_antigo_str}{unidade_str}</span></div>
-                """
-            else:
-                preco_principal = f"R$ {preco:.2f}".replace('.', ',')
-                preco_html = f"<div><b>{preco_principal}{unidade_str}</b></div>"
-
-            # Preços adicionais
-            preco_por_metro_str = None
-            if 'papel higiênico' in descricao.lower() or 'papel higienico' in descricao.lower():
-                _, preco_por_metro_str = calcular_precos_papel(descricao, preco_total)
-
-            preco_por_unidade = p.get('preco_unidade_str')
-
-            preco_info_extra = ""
-            if preco_por_metro_str:
-                preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_metro_str}</div>"
-            if preco_por_unidade:
-                preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_unidade}</div>"
-
-
-            st.markdown(f"""
-                <div class='product-container'>
-                    <div class='product-image'>
-                        <img src='{imagem_url}' width='80'/>
-                    </div>
-                    <div class='product-info'>
-                        <div style='margin-bottom: 4px;'><b>{descricao}</b></div>
-                        <div style='font-size:0.85em;'>{preco_html}</div>
-                        <div style='font-size:0.85em;'>{preco_info_extra}</div>
-                    </div>
+        st.markdown(f"""
+            <div class='product-container'>
+                <div class='product-image'>
+                    <img src='{imagem_url}' width='80'/>
                 </div>
-                <hr class='product-separator' />
-            """, unsafe_allow_html=True)
-
-    else:
-        st.error("Erro ao buscar produtos. Verifique o termo de busca ou a conexão.")
+                <div class='product-info'>
+                    <div style='margin-bottom: 4px;'><b>{descricao}</b></div>
+                    <div style='font-size:0.85em;'>{preco_html}</div>
+                    <div style='font-size:0.85em;'>{preco_info_extra}</div>
+                </div>
+            </div>
+            <hr class='product-separator' />
+        """, unsafe_allow_html=True)
+else:
+    st.info("Digite um termo para buscar.")
