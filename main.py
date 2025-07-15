@@ -174,10 +174,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("""
-    <h5 style="display:flex; align-items:center;">
-    <div style="padding: 05px; background-color: white; border-radius: 4px; display: inline-block; margin-right: 8px;">
-        <img src="https://raw.githubusercontent.com/Dex6354/PrecoShibata/refs/heads/main/logo-shibata.png" width="85" style="display: block;"/>
-    </div>
+    <h5 style="display: flex; align-items: center;">
+    <img src="https://raw.githubusercontent.com/Dex6354/PrecoShibata/refs/heads/main/logo-shibata.png" width="80" style="margin-right:8px; background-color: white; border-radius: 4px; padding: 5px;"/>
     Preço Shibata
 </h5>
 """, unsafe_allow_html=True)
