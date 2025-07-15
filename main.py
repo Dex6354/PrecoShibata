@@ -184,8 +184,8 @@ termo = st.text_input("🛒Digite o nome do produto:", "").strip().lower()
 
 if termo:
     produtos_totais = []
-    max_workers = 9
-    max_paginas = 18
+    max_workers = 8
+    max_paginas = 15
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(buscar_pagina, termo, pagina) for pagina in range(1, max_paginas + 1)]
