@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import unicodedata
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NTE5MjQ5MjgsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiMTYxIn0.yDCjqkeJv7D3wJ0T_fu3AaKlX9s5PQYXD19cESWpH-j3F_Is-Zb-bDdUvduwoI_RkOeqbYCuxN0ppQQXb1ArVg"
 ORG_ID = "161"
@@ -68,6 +69,17 @@ def formatar_preco_unidade_personalizado(preco_total, quantidade, unidade):
     else:
         return f"R$ {preco_total:.2f}".replace('.', ',') + f"/{unidade.lower()}"
 
+def buscar_pagina(termo, pagina):
+    url = f"https://services.vipcommerce.com.br/api-admin/v1/org/{ORG_ID}/filial/1/centro_distribuicao/1/loja/buscas/produtos/termo/{termo}?page={pagina}"
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        if response.status_code == 200:
+            data = response.json().get('data', {}).get('produtos', [])
+            return [produto for produto in data if produto.get("disponivel", True)]  # 🔥 Filtra só produtos disponíveis
+    except Exception:
+        pass
+    return []
+
 st.set_page_config(page_title="Preço Shibata", page_icon="🧻")
 
 st.markdown("""
@@ -123,20 +135,13 @@ termo = st.text_input("🛒Digite o nome do produto:", "").strip().lower()
 
 if termo:
     produtos_totais = []
-    pagina = 1
+    max_workers = 11
+    max_paginas = 22
 
-    while True:
-        url = f"https://services.vipcommerce.com.br/api-admin/v1/org/{ORG_ID}/filial/1/centro_distribuicao/1/loja/buscas/produtos/termo/{termo}?page={pagina}"
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        if response.status_code != 200:
-            break
-
-        data = response.json().get('data', {}).get('produtos', [])
-        if not data:
-            break
-
-        produtos_totais.extend(data)
-        pagina += 1
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(buscar_pagina, termo, pagina) for pagina in range(1, max_paginas + 1)]
+        for future in as_completed(futures):
+            produtos_totais.extend(future.result())
 
     termo_sem_acento = remover_acentos(termo)
     palavras_termo = termo_sem_acento.split()
@@ -144,6 +149,8 @@ if termo:
 
     produtos_processados = []
     for p in produtos_filtrados:
+        if not p.get("disponivel", True):  # 🔒 Reforço de segurança
+            continue
         preco = float(p.get('preco') or 0)
         em_oferta = p.get('em_oferta', False)
         oferta_info = p.get('oferta') or {}
