@@ -184,8 +184,8 @@ termo = st.text_input("🛒Digite o nome do produto:", "").strip().lower()
 
 if termo:
     produtos_totais = []
-    max_workers = 11
-    max_paginas = 22
+    max_workers = 9
+    max_paginas = 18
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(buscar_pagina, termo, pagina) for pagina in range(1, max_paginas + 1)]
@@ -291,5 +291,3 @@ if termo:
             </div>
             <hr class='product-separator' />
         """, unsafe_allow_html=True)
-else:
-    st.info("Digite um termo para buscar.")
