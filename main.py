@@ -258,13 +258,17 @@ if termo:
             preco_antigo_str = f"R$ {preco_antigo_val:.2f}".replace('.', ',')
             preco_html = f"""
                 <div><b>{preco_formatado}</b> <span style='color:red;'>({desconto}% OFF)</span></div>
-                <div><span style='color:gray; text-decoration: line-through;'>Preço original: {preco_antigo_str}</span></div>
+                <div><span style='color:gray; text-decoration: line-through;'>{preco_antigo_str}</span></div>
             """
         else:
             preco_html = f"<div><b>{preco_formatado}</b></div>"
 
         preco_info_extra = ""
         descricao_modificada = descricao
+        if 'papel higienico' in remover_acentos(descricao):
+            descricao_modificada = re.sub(r'(folha simples)', r"<span style='color:red;'><b>\1</b></span>", descricao_modificada, flags=re.IGNORECASE)
+            descricao_modificada = re.sub(r'(folha dupla|folha tripla)', r"<span style='color:green;'><b>\1</b></span>", descricao_modificada, flags=re.IGNORECASE)
+
         total_folhas, preco_por_folha = calcular_preco_papel_toalha(descricao, preco_total)
 
         if total_folhas and preco_por_folha:
