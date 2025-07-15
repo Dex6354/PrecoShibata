@@ -131,7 +131,7 @@ def buscar_pagina(termo, pagina):
         pass
     return []
 
-st.set_page_config(page_title="Preço Shibata", page_icon="🧻")
+st.set_page_config(page_title="Preço Shibata", page_icon="🛒")
 
 st.markdown("""
     <style>
