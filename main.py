@@ -60,6 +60,57 @@ def calcular_preco_unidade(descricao, preco_total):
 
     return None, None
 
+def calcular_preco_papel_toalha(descricao, preco_total):
+    desc = descricao.lower()
+
+    # Tenta extrair quantidade de unidades (rolos, unidades, pacotes)
+    qtd_unidades = None
+    match_unidades = re.search(r'(\d+)\s*(rolos|unidades|pacotes|pacote|kits?)', desc)
+    if match_unidades:
+        qtd_unidades = int(match_unidades.group(1))
+
+    # Tenta extrair número de folhas por unidade (folhas, toalhas)
+    folhas_por_unidade = None
+    # Exemplo: "com 120 folhas cada"
+    match_folhas = re.search(r'(\d+)\s*(folhas|toalhas)\s*cada', desc)
+    if not match_folhas:
+        # Exemplo: "Folha Dupla ... - 550 folhas"
+        match_folhas = re.search(r'(\d+)\s*(folhas|toalhas)', desc)
+    if match_folhas:
+        folhas_por_unidade = int(match_folhas.group(1))
+
+    # Tenta extrair "Leve 240 pague 220 folhas" — pega o maior número próximo da palavra folhas
+    match_leve_pague = re.findall(r'(\d+)', desc)
+    folhas_leve = None
+    if 'leve' in desc and 'folhas' in desc and match_leve_pague:
+        folhas_leve = max(int(n) for n in match_leve_pague)
+
+    # Tenta extrair detalhes em texto estilo "Unidades por kit: 2 ... Quantidade de folhas por rolo: 100"
+    match_unidades_kit = re.search(r'unidades por kit[:\- ]+(\d+)', desc)
+    match_folhas_rolo = re.search(r'quantidade de folhas por (?:rolo|unidade)[:\- ]+(\d+)', desc)
+
+    # Lógica para calcular total de folhas:
+    if match_unidades_kit and match_folhas_rolo:
+        total_folhas = int(match_unidades_kit.group(1)) * int(match_folhas_rolo.group(1))
+        preco_por_folha = preco_total / total_folhas if total_folhas else None
+        return total_folhas, preco_por_folha
+
+    if qtd_unidades and folhas_por_unidade:
+        total_folhas = qtd_unidades * folhas_por_unidade
+        preco_por_folha = preco_total / total_folhas if total_folhas else None
+        return total_folhas, preco_por_folha
+
+    if folhas_por_unidade:
+        preco_por_folha = preco_total / folhas_por_unidade if folhas_por_unidade else None
+        return folhas_por_unidade, preco_por_folha
+
+    if folhas_leve:
+        preco_por_folha = preco_total / folhas_leve if folhas_leve else None
+        return folhas_leve, preco_por_folha
+
+    return None, None
+
+
 def formatar_preco_unidade_personalizado(preco_total, quantidade, unidade):
     if not unidade:
         return None
@@ -169,7 +220,15 @@ if termo:
         p['preco_por_metro_val'] = preco_por_metro_val if preco_por_metro_val else float('inf')
         produtos_processados.append(p)
 
-    if 'papel higienico' in remover_acentos(termo):
+    # Ordenação especial para papel toalha, papel higiênico e demais
+    if 'papel toalha' in termo_sem_acento:
+        for p in produtos_processados:
+            preco_oferta = (p.get('oferta') or {}).get('preco_oferta')
+            preco_atual = float(preco_oferta) if preco_oferta else float(p.get('preco') or 0)
+            total_folhas, preco_por_folha = calcular_preco_papel_toalha(p.get('descricao', ''), preco_atual)
+            p['preco_por_folha_val'] = preco_por_folha if preco_por_folha else float('inf')
+        produtos_ordenados = sorted(produtos_processados, key=lambda x: x['preco_por_folha_val'])
+    elif 'papel higienico' in termo_sem_acento:
         produtos_ordenados = sorted(produtos_processados, key=lambda x: x['preco_por_metro_val'])
     else:
         produtos_ordenados = sorted(produtos_processados, key=lambda x: x['preco_unidade_val'])
@@ -206,14 +265,20 @@ if termo:
         else:
             preco_html = f"<div><b>{preco_formatado}</b></div>"
 
-        _, preco_por_metro_str = calcular_precos_papel(descricao, preco_total)
-        _, preco_por_unidade_str = calcular_preco_unidade(descricao, preco_total)
-
         preco_info_extra = ""
-        if preco_por_metro_str:
-            preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_metro_str}</div>"
-        if preco_por_unidade_str:
-            preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_unidade_str}</div>"
+        descricao_modificada = descricao
+        total_folhas, preco_por_folha = calcular_preco_papel_toalha(descricao, preco_total)
+
+        if total_folhas and preco_por_folha:
+            descricao_modificada += f" <span style='color:gray;'>({total_folhas} folhas)</span>"
+            preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>R$ {preco_por_folha:.3f}/folha</div>"
+        else:
+            _, preco_por_metro_str = calcular_precos_papel(descricao, preco_total)
+            _, preco_por_unidade_str = calcular_preco_unidade(descricao, preco_total)
+            if preco_por_metro_str:
+                preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_metro_str}</div>"
+            if preco_por_unidade_str:
+                preco_info_extra += f"<div style='color:gray; font-size:0.75em;'>{preco_por_unidade_str}</div>"
 
         st.markdown(f"""
             <div class='product-container'>
@@ -221,7 +286,7 @@ if termo:
                     <img src='{imagem_url}' width='80'/>
                 </div>
                 <div class='product-info'>
-                    <div style='margin-bottom: 4px;'><b>{descricao}</b></div>
+                    <div style='margin-bottom: 4px;'><b>{descricao_modificada}</b></div>
                     <div style='font-size:0.85em;'>{preco_html}</div>
                     <div style='font-size:0.85em;'>{preco_info_extra}</div>
                 </div>
