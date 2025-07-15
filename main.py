@@ -259,7 +259,7 @@ if termo:
             desconto = round(100 * (preco_antigo_val - preco_oferta_val) / preco_antigo_val) if preco_antigo_val else 0
             preco_antigo_str = f"R$ {preco_antigo_val:.2f}".replace('.', ',')
             preco_html = f"""
-                <div><b style='color:green;'>{preco_formatado}</b> <span style='color:red;'>({desconto}% OFF)</span></div>
+                <div><b>{preco_formatado}</b> <span style='color:red;'>({desconto}% OFF)</span></div>
                 <div><span style='color:gray; text-decoration: line-through;'>Preço original: {preco_antigo_str}</span></div>
             """
         else:
